@@ -5,62 +5,111 @@
   <title>极简冥想计时</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
+    :root {
+      --bg: #f5f7fa;
+      --card-bg: #ffffff;
+      --card-soft: #f9fafb;
+      --text-main: #111827;
+      --text-sub: #6b7280;
+      --border-soft: #e5e7eb;
+      --accent: #22c55e;
+      --accent-soft: #dcfce7;
+      --disc-inner: #f9fafb;
+      --shadow-card: 0 18px 40px rgba(15, 23, 42, 0.18);
+      --shadow-btn: 0 8px 20px rgba(34, 197, 94, 0.35);
+      --overlay: rgba(15,23,42,0.55);
+    }
+
+    body[data-theme="dark"] {
+      --bg: #020617;
+      --card-bg: #020617;
+      --card-soft: #020617;
+      --disc-inner: #020617;
+      --text-main: #e5e7eb;
+      --text-sub: #9ca3af;
+      --border-soft: #1f2937;
+      --shadow-card: 0 18px 40px rgba(0,0,0,0.9);
+      --shadow-btn: 0 8px 20px rgba(34,197,94,0.45);
+      --overlay: rgba(15,23,42,0.75);
+    }
+
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text",
-        system-ui, "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "PingFang SC";
     }
 
     body {
       min-height: 100vh;
-      background: #f5f7fa;
+      background: var(--bg);
       display: flex;
       justify-content: center;
       align-items: center;
       padding: 24px;
-      color: #222;
+      color: var(--text-main);
+      transition: background 0.25s ease;
     }
 
     .app {
       width: 100%;
       max-width: 480px;
-      background: #ffffff;
+      background: var(--card-bg);
       border-radius: 24px;
-      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+      box-shadow: var(--shadow-card);
       padding: 20px 20px 24px;
+      position: relative;
+      overflow: hidden;
+      transition: background 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
     }
 
     .app-header {
-      display: flex;
-      justify-content: center;
-      margin-bottom: 12px;
+      text-align: center;
       font-size: 18px;
       font-weight: 600;
-      letter-spacing: 0.08em;
+      flex: 1;
+      text-align: center;
+      letter-spacing: 0.12em;
     }
 
-    .timer-section {
-      padding: 12px 0 16px;
+    .theme-toggle {
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      border: 1px solid var(--border-soft);
+      background: var(--card-soft);
       display: flex;
-      flex-direction: column;
       align-items: center;
-      border-bottom: 1px solid #e5e7eb;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 16px;
+      margin-left: 8px;
     }
 
+    .theme-toggle:active {
+      transform: scale(0.96);
+    }
+
+    /* ==== 计时圆盘 ==== */
     .timer-disc-wrapper {
       position: relative;
-      width: 220px;
-      height: 220px;
-      margin-bottom: 12px;
+      width: 240px;
+      height: 240px;
+      margin: 4px auto 0;
     }
 
     .timer-disc {
       width: 100%;
       height: 100%;
       border-radius: 50%;
-      background: radial-gradient(circle at 30% 30%, #222 0%, #050608 60%, #000 100%);
+      background: radial-gradient(circle at 30% 30%, #222 0%, #050608 60%, #000);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -71,245 +120,312 @@
     .timer-disc::before {
       content: "";
       position: absolute;
-      width: 98%;
-      height: 98%;
+      width: 95%;
+      height: 95%;
       border-radius: 50%;
-      border: 2px solid rgba(148, 163, 184, 0.6);
+      border: 2px solid rgba(148, 163, 184, 0.4);
     }
 
+    /* 绿色指针（修复版） */
     .timer-hand {
       position: absolute;
-      width: 50%;
-      height: 2px;
-      background: linear-gradient(90deg, #22c55e, #4ade80);
-      transform-origin: 10% 50%;
+      width: 50%;          /* 指针长度 */
+      height: 3px;
+      background: var(--accent);
       left: 50%;
       top: 50%;
+      transform-origin: 0% 50%;
+      transform: translate(0, -50%) rotate(-90deg); /* 正上方 */
       border-radius: 999px;
-      transition: transform 0.3s ease-out;
-      transform: translate(-50%, -50%) rotate(-90deg);
-      box-shadow: 0 0 10px rgba(34, 197, 94, 0.8);
+      box-shadow: 0 0 8px rgba(34, 197, 94, 0.75);
+      transition: transform 0.25s linear;
     }
 
     .timer-inner {
-      width: 86px;
-      height: 86px;
+      width: 80px;
+      height: 80px;
       border-radius: 50%;
-      background: #f9fafb;
+      background: var(--disc-inner);
+      box-shadow: 0 0 0 5px rgba(15, 23, 42, 0.7);
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 0 0 6px rgba(15, 23, 42, 0.7);
-      font-size: 42px;
+      font-size: 40px;
+      position: relative;
+      z-index: 2;
     }
 
     .time-display {
-      margin-top: 12px;
-      font-size: 32px;
+      text-align: center;
+      margin-top: 18px;
+      font-size: 36px;
       font-weight: 600;
       letter-spacing: 0.08em;
-      color: #111827;
     }
 
+    /* 时间按钮 */
     .time-presets {
+      margin-top: 14px;
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
-      margin-top: 12px;
       justify-content: center;
     }
 
     .btn {
-      border: none;
-      outline: none;
-      border-radius: 999px;
-      padding: 7px 14px;
+      padding: 8px 14px;
       font-size: 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border-soft);
+      background: var(--card-soft);
+      color: var(--text-main);
       cursor: pointer;
-      background: #f3f4f6;
-      color: #111827;
-      min-width: 70px;
-      text-align: center;
-      transition: all 0.15s ease;
+      transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease, transform 0.08s ease;
     }
 
-    .btn:hover {
-      background: #e5e7eb;
+    .btn:active {
+      transform: scale(0.97);
     }
 
-    .btn-primary {
-      background: #22c55e;
+    .btn.active {
+      background: var(--accent);
       color: #fff;
-      padding: 10px 18px;
-      font-size: 16px;
-      margin-top: 14px;
-      min-width: 160px;
-      box-shadow: 0 10px 20px rgba(34, 197, 94, 0.35);
-    }
-
-    .btn-primary:hover {
-      background: #16a34a;
-      box-shadow: 0 12px 24px rgba(34, 197, 94, 0.4);
-      transform: translateY(-1px);
-    }
-
-    .btn-primary:active {
-      transform: translateY(0);
-      box-shadow: 0 6px 14px rgba(34, 197, 94, 0.35);
-    }
-
-    .btn-pill {
-      border-radius: 1000px;
-    }
-
-    .btn-outline {
-      background: #f9fafb;
-      border: 1px solid #e5e7eb;
-    }
-
-    .btn-outline.active {
-      border-color: #22c55e;
-      color: #16a34a;
-      background: #dcfce7;
-    }
-
-    .btn-soft.active {
-      background: #22c55e;
-      color: #fff;
-    }
-
-    .btn-soft {
-      background: #f3f4f6;
-    }
-
-    .time-presets .btn-soft.active {
+      border-color: var(--accent);
       box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.4);
     }
 
-    .custom-time {
+    .btn-primary {
+      display: block;
+      width: 70%;
+      margin: 18px auto 0;
+      padding: 12px;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 999px;
+      font-size: 18px;
+      border: none;
+      cursor: pointer;
+      box-shadow: var(--shadow-btn);
+    }
+
+    .btn-primary.secondary {
+      width: 100%;
+      margin-top: 14px;
+      background: var(--card-soft);
+      color: var(--text-main);
+      border: 1px solid var(--border-soft);
+      box-shadow: none;
+      font-size: 15px;
       display: flex;
       align-items: center;
-      gap: 6px;
-      margin-top: 8px;
-      font-size: 14px;
-      color: #6b7280;
+      justify-content: center;
+      gap: 8px;
     }
 
-    .custom-time input {
-      width: 70px;
-      border-radius: 999px;
-      border: 1px solid #d1d5db;
-      padding: 4px 8px;
-      text-align: center;
-      outline: none;
-      font-size: 14px;
+    .btn-primary.secondary span.label {
+      color: var(--accent);
     }
 
-    .custom-time input:focus {
-      border-color: #22c55e;
-      box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.3);
+    .btn-primary.secondary:active {
+      transform: scale(0.98);
+      box-shadow: none;
     }
 
-    .sound-section {
-      padding-top: 16px;
+    /* 环境音 */
+    .section-title {
+      font-size: 15px;
+      margin-top: 20px;
+      margin-bottom: 6px;
     }
 
     .sound-grid {
+      margin-top: 6px;
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(3, 1fr);
       gap: 8px;
-      margin-top: 8px;
     }
 
-    .sound-grid button {
-      padding: 8px 4px;
-      font-size: 14px;
+    .sound.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
     }
 
-    .mode-row {
-      display: flex;
-      justify-content: center;
-      gap: 12px;
-      margin-top: 12px;
-    }
-
-    .footer {
-      margin-top: 16px;
+    .note {
+      margin-top: 10px;
       font-size: 12px;
+      color: var(--text-sub);
       text-align: center;
-      color: #9ca3af;
     }
 
-    @media (max-width: 480px) {
+    /* 结束音弹窗 */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: var(--overlay);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+    }
+
+    .modal-backdrop.show {
+      display: flex;
+    }
+
+    .modal {
+      width: 86%;
+      max-width: 420px;
+      background: var(--card-bg);
+      border-radius: 18px;
+      padding: 18px 16px 14px;
+      box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
+    }
+
+    .modal-title {
+      text-align: center;
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+
+    .end-list {
+      margin: 8px 0 10px;
+    }
+
+    .end-item {
+      width: 100%;
+      text-align: center;
+      padding: 10px 8px;
+      border-radius: 12px;
+      border: 1px solid var(--border-soft);
+      background: var(--card-soft);
+      margin-bottom: 8px;
+      cursor: pointer;
+      font-size: 15px;
+    }
+
+    .end-item.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 6px;
+    }
+
+    .modal-footer button {
+      padding: 6px 14px;
+      font-size: 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border-soft);
+      background: var(--card-soft);
+      cursor: pointer;
+    }
+
+    .modal-footer button:active {
+      transform: scale(0.97);
+    }
+
+    /* 响应式：大屏 / iPad / 折叠屏 */
+    @media (min-width: 768px) {
+      body {
+        padding: 40px;
+      }
       .app {
-        padding: 18px 16px 20px;
+        max-width: 640px;
+        padding: 24px 26px 28px;
       }
       .timer-disc-wrapper {
-        width: 200px;
-        height: 200px;
+        width: 280px;
+        height: 280px;
+      }
+      .time-display {
+        font-size: 40px;
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .app {
+        max-width: 720px;
       }
     }
   </style>
 </head>
-<body>
+
+<body data-theme="light">
   <div class="app">
-    <div class="app-header">极简冥想计时</div>
-
-    <div class="timer-section">
-      <div class="timer-disc-wrapper">
-        <div class="timer-disc">
-          <div class="timer-hand" id="timerHand"></div>
-          <div class="timer-inner">⏳</div>
-        </div>
-      </div>
-      <div class="time-display" id="timeDisplay">03:00</div>
-
-      <div class="time-presets" id="presetButtons">
-        <button class="btn btn-soft btn-pill preset active" data-seconds="60">1分钟</button>
-        <button class="btn btn-soft btn-pill preset" data-seconds="180">3分钟</button>
-        <button class="btn btn-soft btn-pill preset" data-seconds="300">5分钟</button>
-        <button class="btn btn-soft btn-pill preset" data-seconds="600">10分钟</button>
-        <button class="btn btn-soft btn-pill preset" data-seconds="1800">30分钟</button>
-      </div>
-
-      <div class="custom-time">
-        <span>自定义：</span>
-        <input type="number" id="customMinutes" placeholder="分钟" min="1" />
-        <span>（留空则用上面预设）</span>
-      </div>
-
-      <button class="btn btn-primary" id="startBtn">开始</button>
+    <div class="top-bar">
+      <div style="width:32px;"></div>
+      <div class="app-header">极简冥想计时</div>
+      <button class="theme-toggle" id="themeToggle" title="切换主题">🌙</button>
     </div>
 
-    <div class="sound-section">
-      <div style="margin-bottom:6px; font-size:14px; color:#374151;">环境音</div>
-      <div class="sound-grid" id="soundButtons">
-        <button class="btn btn-outline btn-pill sound active" data-key="none">无音乐</button>
-        <button class="btn btn-outline btn-pill sound" data-key="white">白噪音</button>
-        <button class="btn btn-outline btn-pill sound" data-key="valley">山谷</button>
-        <button class="btn btn-outline btn-pill sound" data-key="thunder">雷暴</button>
-        <button class="btn btn-outline btn-pill sound" data-key="stream">小溪</button>
-        <button class="btn btn-outline btn-pill sound" data-key="rain">雨声</button>
-        <button class="btn btn-outline btn-pill sound" data-key="ocean">海洋</button>
-        <button class="btn btn-outline btn-pill sound" data-key="night">夜晚</button>
-        <button class="btn btn-outline btn-pill sound" data-key="forest">森林</button>
-      </div>
-
-      <div class="mode-row">
-        <button class="btn btn-pill btn-soft active" id="modeLoop">循环</button>
-        <button class="btn btn-pill btn-soft" id="modeRandom">随机</button>
+    <div class="timer-disc-wrapper">
+      <div class="timer-disc">
+        <div class="timer-hand" id="timerHand"></div>
+        <div class="timer-inner">⏳</div>
       </div>
     </div>
 
-    <div class="footer">
-      提示：请自备无版权的环境音文件，放到 <code>sounds/</code> 目录中。
+    <div class="time-display" id="timeDisplay">03:00</div>
+
+    <!-- 时间预设 -->
+    <div class="time-presets" id="presetButtons">
+      <button class="btn active" data-seconds="60">1分钟</button>
+      <button class="btn" data-seconds="180">3分钟</button>
+      <button class="btn" data-seconds="300">5分钟</button>
+      <button class="btn" data-seconds="600">10分钟</button>
+      <button class="btn" data-seconds="1800">30分钟</button>
+    </div>
+
+    <button class="btn-primary" id="startBtn">开始</button>
+
+    <button class="btn-primary secondary" id="endSoundBtn">
+      结束音：
+      <span class="label" id="endSoundLabel">无</span>
+    </button>
+
+    <h3 class="section-title">环境音</h3>
+
+    <div class="sound-grid" id="soundButtons">
+      <button class="btn sound active" data-key="none">无音乐</button>
+      <button class="btn sound" data-key="white">白噪音</button>
+      <button class="btn sound" data-key="valley">山谷</button>
+      <button class="btn sound" data-key="thunder">雷暴</button>
+      <button class="btn sound" data-key="stream">小溪</button>
+      <button class="btn sound" data-key="rain">雨声</button>
+      <button class="btn sound" data-key="ocean">海洋</button>
+      <button class="btn sound" data-key="night">夜晚</button>
+      <button class="btn sound" data-key="forest">森林</button>
+    </div>
+
+    <div class="note">提示：请使用无版权环境音和结束提示音文件。</div>
+  </div>
+
+  <!-- 结束音弹窗 -->
+  <div class="modal-backdrop" id="endSoundModal">
+    <div class="modal">
+      <div class="modal-title">设置时间结束音效</div>
+      <div class="end-list" id="endSoundList">
+        <button class="end-item active" data-key="none">无</button>
+        <button class="end-item" data-key="bear">熊二</button>
+        <button class="end-item" data-key="monkey">猴哥</button>
+        <button class="end-item" data-key="girl">元气少女</button>
+        <button class="end-item" data-key="boy">元气少年</button>
+      </div>
+      <div class="modal-footer">
+        <button id="endSoundDone">完成</button>
+      </div>
     </div>
   </div>
 
   <script>
-    // ====== 配置你的音频文件路径 ======
-    // 把对应的 mp3 放在 /sounds 目录下，文件名自己改即可
-    const SOUND_FILES = {
+    // ========= 配置音频文件 =========
+    // 环境音：放在 /sounds 下
+    const BG_SOUNDS = {
       white: "sounds/white-noise.mp3",
       valley: "sounds/valley.mp3",
       thunder: "sounds/thunderstorm.mp3",
@@ -317,104 +433,121 @@
       rain: "sounds/rain.mp3",
       ocean: "sounds/ocean.mp3",
       night: "sounds/night.mp3",
-      forest: "sounds/forest.mp3"
+      forest: "sounds/forest.mp3",
     };
 
+    // 结束音：也放在 /sounds 下
+    const END_SOUNDS = {
+      none: null,
+      bear: "sounds/end-bear.mp3",       // 熊二
+      monkey: "sounds/end-monkey.mp3",   // 猴哥
+      girl: "sounds/end-girl.mp3",       // 元气少女
+      boy: "sounds/end-boy.mp3",         // 元气少年
+    };
+
+    const END_SOUND_LABEL = {
+      none: "无",
+      bear: "熊二",
+      monkey: "猴哥",
+      girl: "元气少女",
+      boy: "元气少年",
+    };
+
+    // ========= DOM =========
+    const timerHand = document.getElementById("timerHand");
     const timeDisplay = document.getElementById("timeDisplay");
     const startBtn = document.getElementById("startBtn");
     const presetContainer = document.getElementById("presetButtons");
-    const customInput = document.getElementById("customMinutes");
     const soundContainer = document.getElementById("soundButtons");
-    const modeLoopBtn = document.getElementById("modeLoop");
-    const modeRandomBtn = document.getElementById("modeRandom");
-    const timerHand = document.getElementById("timerHand");
 
-    let totalSeconds = 180; // 默认 3 分钟
+    const themeToggle = document.getElementById("themeToggle");
+
+    const endSoundBtn = document.getElementById("endSoundBtn");
+    const endSoundLabel = document.getElementById("endSoundLabel");
+    const endSoundModal = document.getElementById("endSoundModal");
+    const endSoundList = document.getElementById("endSoundList");
+    const endSoundDone = document.getElementById("endSoundDone");
+
+    // ========= 状态 =========
+    let totalSeconds = 180;
     let remainingSeconds = totalSeconds;
     let timerId = null;
     let isRunning = false;
 
-    let selectedSoundKey = "none";
-    let mode = "loop"; // or 'random'
-    let audio = null;
+    let currentBgKey = "none";
+    let bgAudio = null;
+    let endAudio = null;
 
+    let selectedEndKey = "none";
+
+    // ========= 时间 & 指针 =========
     function formatTime(sec) {
       const m = Math.floor(sec / 60);
       const s = sec % 60;
-      const mm = m < 10 ? "0" + m : "" + m;
-      const ss = s < 10 ? "0" + s : "" + s;
-      return `${mm}:${ss}`;
+      return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
     }
 
     function updateDisplay() {
       timeDisplay.textContent = formatTime(remainingSeconds);
 
-      // 进度角度：从 -90 度开始，顺时针 360 度
       const progress = 1 - remainingSeconds / totalSeconds;
-      const angle = -90 + progress * 360;
-      timerHand.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`;
+      const angle = (-90 + progress * 360) % 360;
+      timerHand.style.transform = `translate(0, -50%) rotate(${angle}deg)`;
     }
 
-    function setTotalSeconds(sec) {
+    function resetTimerTo(sec) {
       totalSeconds = sec;
       remainingSeconds = sec;
       updateDisplay();
     }
 
-    function stopAudio() {
-      if (audio) {
-        audio.pause();
-        audio.currentTime = 0;
-        audio = null;
+    // ========= 背景音 =========
+    function stopBgAudio() {
+      if (bgAudio) {
+        bgAudio.pause();
+        bgAudio.currentTime = 0;
+        bgAudio = null;
       }
     }
 
-    function playSoundOnce(key) {
+    function playBgAudio(key) {
+      stopBgAudio();
       if (key === "none") return;
-
-      stopAudio();
-      const src = SOUND_FILES[key];
+      const src = BG_SOUNDS[key];
       if (!src) return;
-      audio = new Audio(src);
-      audio.loop = mode === "loop";
-
-      if (mode === "random") {
-        audio.loop = false;
-        audio.addEventListener("ended", () => {
-          if (remainingSeconds > 0) {
-            const keys = Object.keys(SOUND_FILES);
-            const randomKey = keys[Math.floor(Math.random() * keys.length)];
-            playSoundOnce(randomKey);
-          }
-        });
-      }
-
-      audio.play().catch(() => {
-        console.warn("音频播放失败（浏览器可能需要用户交互）");
-      });
+      bgAudio = new Audio(src);
+      bgAudio.loop = true;
+      bgAudio.volume = 0.7;
+      bgAudio.play().catch(() => {});
     }
 
+    // ========= 结束音 =========
+    function playEndSound() {
+      if (selectedEndKey === "none") return;
+      const src = END_SOUNDS[selectedEndKey];
+      if (!src) return;
+      if (endAudio) {
+        endAudio.pause();
+        endAudio = null;
+      }
+      endAudio = new Audio(src);
+      endAudio.play().catch(() => {});
+    }
+
+    // ========= 计时器 =========
     function startTimer() {
       if (isRunning) return;
-
-      // 优先使用自定义时间
-      const customMinutes = Number(customInput.value);
-      if (customMinutes > 0) {
-        setTotalSeconds(customMinutes * 60);
-      } else if (remainingSeconds <= 0) {
-        // 防止从 0 开始
-        remainingSeconds = totalSeconds;
-      }
-
       isRunning = true;
       startBtn.textContent = "停止";
-      playSoundOnce(selectedSoundKey);
 
-      const startTotal = remainingSeconds;
-      totalSeconds = startTotal; // 让进度环从当前时间开始
+      // 开始时，如果选了环境音，就播放
+      if (currentBgKey !== "none") {
+        playBgAudio(currentBgKey);
+      }
 
       timerId = setInterval(() => {
         remainingSeconds -= 1;
+
         if (remainingSeconds <= 0) {
           remainingSeconds = 0;
           updateDisplay();
@@ -422,91 +555,121 @@
           timerId = null;
           isRunning = false;
           startBtn.textContent = "开始";
-          stopAudio();
-          alert("时间到啦！");
-        } else {
-          updateDisplay();
+
+          stopBgAudio();
+          playEndSound();
+          alert("时间到！");
+          return;
         }
+
+        updateDisplay();
       }, 1000);
     }
 
-    function stopTimer() {
-      if (timerId) {
-        clearInterval(timerId);
-        timerId = null;
-      }
+    function stopTimer(manual = true) {
+      if (!isRunning && !timerId) return;
+      clearInterval(timerId);
+      timerId = null;
       isRunning = false;
       startBtn.textContent = "开始";
-      stopAudio();
+      stopBgAudio();
+      if (manual) {
+        // 手动停止就不播结束音
+      }
     }
 
-    // 预设时间按钮
+    // ========= 事件绑定 =========
+
+    // 预设时间
     presetContainer.addEventListener("click", (e) => {
       const btn = e.target.closest("button[data-seconds]");
-      if (!btn || isRunning) return;
-      presetContainer
-        .querySelectorAll(".preset")
-        .forEach((b) => b.classList.remove("active"));
+      if (!btn) return;
+      if (isRunning) return; // 正在计时时不允许改预设，简单一点
+
+      presetContainer.querySelectorAll(".btn").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
+
       const sec = Number(btn.dataset.seconds);
-      setTotalSeconds(sec);
-      customInput.value = "";
+      resetTimerTo(sec);
     });
 
-    // 自定义时间变化
-    customInput.addEventListener("change", () => {
-      if (isRunning) return;
-      const minutes = Number(customInput.value);
-      if (minutes > 0) {
-        setTotalSeconds(minutes * 60);
-        presetContainer
-          .querySelectorAll(".preset")
-          .forEach((b) => b.classList.remove("active"));
-      } else {
-        customInput.value = "";
-      }
-    });
-
-    // 声音选择
+    // 环境音选择
     soundContainer.addEventListener("click", (e) => {
       const btn = e.target.closest("button[data-key]");
       if (!btn) return;
-      soundContainer
-        .querySelectorAll(".sound")
-        .forEach((b) => b.classList.remove("active"));
+      const key = btn.dataset.key;
+
+      soundContainer.querySelectorAll(".sound").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
-      selectedSoundKey = btn.dataset.key;
+
+      currentBgKey = key;
+
       if (isRunning) {
-        playSoundOnce(selectedSoundKey);
+        playBgAudio(currentBgKey);
+      } else {
+        stopBgAudio();
       }
     });
 
-    // 模式切换：循环 / 随机
-    modeLoopBtn.addEventListener("click", () => {
-      mode = "loop";
-      modeLoopBtn.classList.add("active");
-      modeRandomBtn.classList.remove("active");
-      if (audio) audio.loop = true;
-    });
-
-    modeRandomBtn.addEventListener("click", () => {
-      mode = "random";
-      modeRandomBtn.classList.add("active");
-      modeLoopBtn.classList.remove("active");
-      if (audio) audio.loop = false;
-    });
-
-    // 开始 / 停止按钮
+    // 开始 / 停止
     startBtn.addEventListener("click", () => {
       if (!isRunning) {
+        // 如果已经归零，重新从总时长开始
+        if (remainingSeconds <= 0) {
+          remainingSeconds = totalSeconds;
+          updateDisplay();
+        }
         startTimer();
       } else {
-        stopTimer();
+        stopTimer(true);
       }
     });
 
-    // 初始化显示
-    setTotalSeconds(180); // 默认 3 分钟
+    // 主题切换
+    themeToggle.addEventListener("click", () => {
+      const body = document.body;
+      const current = body.getAttribute("data-theme") || "light";
+      const next = current === "light" ? "dark" : "light";
+      body.setAttribute("data-theme", next);
+      themeToggle.textContent = next === "light" ? "🌙" : "☀️";
+    });
+
+    // 结束音弹窗
+    function openEndSoundModal() {
+      endSoundModal.classList.add("show");
+    }
+
+    function closeEndSoundModal() {
+      endSoundModal.classList.remove("show");
+    }
+
+    endSoundBtn.addEventListener("click", openEndSoundModal);
+
+    // 点击背景关闭
+    endSoundModal.addEventListener("click", (e) => {
+      if (e.target === endSoundModal) {
+        closeEndSoundModal();
+      }
+    });
+
+    // 选择结束音
+    endSoundList.addEventListener("click", (e) => {
+      const btn = e.target.closest(".end-item");
+      if (!btn) return;
+      const key = btn.dataset.key;
+
+      endSoundList.querySelectorAll(".end-item").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+
+      selectedEndKey = key;
+      endSoundLabel.textContent = END_SOUND_LABEL[key] || "无";
+    });
+
+    endSoundDone.addEventListener("click", closeEndSoundModal);
+
+    // 初始化
+    updateDisplay();
   </script>
+
 </body>
 </html>
